@@ -4,8 +4,10 @@ var mapillaryMarkers = [] // array of all new Mapillary markers
 var selectedMarker;					// currently selected marker
 var currentMarketId = 0;    // current Mapillary marker
 var presets;						// presets.json
-var beamIcon,beamMarker,redIcon;	// custom icons
+var beamIcon,beamMarker,redIcon, greenIcon;	// custom icons
 var clickTimer, swallowClick;		// double-click handling
+let downloaded_markers;
+let mly_node;
 
 // =========================================================================
 // Initialise the app
@@ -62,6 +64,9 @@ function initialise() {
 	beamIcon = L.icon({ iconUrl: 'images/location-0.png', iconSize: [48,48], iconAnchor: [24,24] });
 	var opts = Object.assign({}, L.Icon.Default.prototype.options);
 	redIcon = L.icon({ iconUrl: 'images/marker_red.png', iconRetinaUrl: 'images/marker_red_2x.png',
+		shadowUrl: "images/marker-shadow.png", iconSize:[25,41], iconAnchor:[12,41],
+		popupAnchor: [1,-34], tooltipAnchor: [16,-28], shadowSize:[41,41] });
+	greenIcon = L.icon({ iconUrl: 'images/marker_green.png', iconRetinaUrl: 'images/marker_green_2x.png',
 		shadowUrl: "images/marker-shadow.png", iconSize:[25,41], iconAnchor:[12,41],
 		popupAnchor: [1,-34], tooltipAnchor: [16,-28], shadowSize:[41,41] });
 
@@ -211,6 +216,7 @@ function createNewMarkerAt(ll) {
 
 // User navigated somewhere on the Mapillary viewer
 function mapillaryMoved(node) {
+	mly_node = node;
     var loc = node.computedLatLon ? [node.computedLatLon.lat, node.computedLatLon.lon] : [node.latLon.lat, node.latLon.lon];
 	if (beamMarker) {
 		beamMarker.setLatLng(loc);
@@ -391,4 +397,106 @@ function uploadData(changesetId) {
 			deleteAllMarkers();
 		})
 	});
+}
+
+//Download OSM data and show them on map and mapillary.js
+function downloadOSMdata(){
+
+	//get coordinates of the viewer
+	const lat = mly_node.latLon.lat;
+	const lon = mly_node.latLon.lon;
+	
+	//set bbox for overpass query
+	const radius = 100; //m
+	const search_area = `(around:${radius},${lat},${lon})`;
+
+	//overpass query, to get node only
+	const query =
+	`[out:json][timeout:25];
+	node${search_area}->.allnodes;
+	way${search_area};> ->.waynodes;
+	(.allnodes; - .waynodes;);
+	out center;`;
+
+	//Get OSM data from overpass server
+	const encoded_query = encodeURI(query);
+	const url = 'https://overpass-api.de/api/interpreter?data=' + encoded_query;
+	console.log(url);
+
+	let request = new XMLHttpRequest();
+	request.open('GET', url , true);
+	request.onload = function () {
+	
+		const data = JSON.parse(this.response);
+
+		console.log("downloadOSMdata: ", JSON.stringify(data, null, 2));
+		
+		//if no data is contained, response alert
+		if (data.elements.length < 1) {
+			alert("No data");
+			return;
+		}
+
+		//list of osm data
+        elements = data.elements;
+
+		let markers = [];
+		let mly_markers = [];
+		
+
+		//for all of osm data
+		for (let i=0; i<elements.length; i++){
+			const item = elements[i];
+			
+			//get lat,lon
+            let lat, lon;
+            if (item.type == "node"){
+                lat = item.lat;
+                lon = item.lon;
+            } else if (item.type == "way" || item.type == "relation"){
+                lat = item.center.lat;
+                lon = item.center.lon;
+            } else {
+                continue;
+			}
+			//make marker to show on map
+			//draggabl: false, not to allow edit position for now
+			const marker = L.marker([Number(lat), Number(lon)], {icon: greenIcon, draggable: false});
+			marker.on('click', function(e){
+				//show tags on table
+				populateTagsTable(item.tags);
+			});
+
+			markers.push(marker);
+
+			//make Mapillary marker
+			const mly_marker = new Mapillary.MarkerComponent.SimpleMarker(
+				'donwload' + i,
+				{ lat: lat, lon: lon },
+				{
+					ballColor: '#fff',
+					ballOpacity: 1,
+					color: '#00bac0',
+					opacity: 0.5,
+					interactive: true,
+					radius: 0.8,
+				});
+			mly_markers.push(mly_marker);
+			
+		}
+		//add markers on map
+		downloaded_markers = L.layerGroup(markers).addTo(map);
+		//add mapillary markers on viewer
+		let markerComponent = mly.getComponent('marker');
+		markerComponent.add(mly_markers);
+		window.addEventListener("resize", function() { mly.resize(); });
+
+		//allow get button only once (should be mofified in future)
+		document.getElementById("download").disabled = true;
+
+
+
+	}
+	request.send();
+
 }

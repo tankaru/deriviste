@@ -3,13 +3,13 @@
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 	<link rel="stylesheet" href="deriviste.css" />
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/mapillary-js@2.15.0/dist/mapillary.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/mapillary-js@2.20.0/dist/mapillary.min.css" />
 	<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 	<script src="umbrella.min.js"></script>
 	<script src="autocomplete.min.js"></script>
 	<script src="deriviste.js"></script>
 	<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/mapillary-js@2.15.0/dist/mapillary.min.js"></script>
+    <script src="https://unpkg.com/mapillary-js@2.20.0/dist/mapillary.min.js"></script>
 	<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 	<script src="https://unpkg.com/leaflet.vectorgrid@latest/dist/Leaflet.VectorGrid.bundled.js"></script>
 	<script src="leaflet.rotatedMarker.js"></script>
@@ -43,6 +43,7 @@
 	<div id="mapillary"></div>
 	<div id="controls">
 		<div class='inner'>
+			<button type='button' id='download' onclick='downloadOSMdata()'>Download OSM data around here</button>
 			<div class="aa-input-container" id="aa-input-container">
 			    <input type="search" id="aa-search-input" class="aa-input-search" placeholder="Search for tags..." name="search" autocomplete="off" />
 			    <svg class="aa-input-icon" viewBox="654 -372 1664 1664">
